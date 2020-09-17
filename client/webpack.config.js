@@ -1,7 +1,7 @@
 const path = require("path");
 
 module.exports = {
-  entry: "./index.ts",
+  entry: "./index.tsx",
   output: {
     filename: "./bundle.js",
     libraryTarget: "commonjs2",

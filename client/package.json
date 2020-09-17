@@ -9,9 +9,15 @@
   "dependencies": {
     "collisions": "^2.0.13",
     "quickgame-framework-client": "link:latest",
-    "quickgame-framework-common": "link:latest"
+    "quickgame-framework-common": "link:latest",
+    "react": "^16.13.1",
+    "react-dom": "^16.13.1"
   },
   "devDependencies": {
+    "@types/react": "^16.9.49",
+    "@types/react-dom": "^16.9.8",
     "typescript": "^4.0.2"
+  },
+  "peerDependencies": {
   }
 }
