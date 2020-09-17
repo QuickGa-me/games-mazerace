@@ -1,0 +1,17 @@
+{
+  "name": "qg-mazerace-client",
+  "version": "1.0.0",
+  "author": "Salvatore <dested@gmail.com>",
+  "private": true,
+  "scripts": {
+    "dev-link": "yarn link quickgame-framework-client && yarn link quickgame-framework-common"
+  },
+  "dependencies": {
+    "collisions": "^2.0.13",
+    "quickgame-framework-client": "link:latest",
+    "quickgame-framework-common": "link:latest"
+  },
+  "devDependencies": {
+    "typescript": "^4.0.2"
+  }
+}

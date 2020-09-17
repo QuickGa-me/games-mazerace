@@ -1,0 +1,23 @@
+{
+  "name": "quickgame-mazerace",
+  "version": "1.0.0",
+  "author": "Salvatore <dested@gmail.com>",
+  "private": true,
+  "scripts": {
+    "client": "qg run-client",
+    "server": "qg run-server",
+    "start": "yarn client & yarn server",
+    "dev-link": "cd ./client && yarn dev-link && cd ../common && yarn dev-link && cd ../server && yarn dev-link"
+  },
+  "workspaces": {
+    "packages": [
+      "client",
+      "common",
+      "server"
+    ]
+  },
+  "dependencies": {
+  },
+  "devDependencies": {
+  }
+}

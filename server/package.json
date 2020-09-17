@@ -1,0 +1,17 @@
+{
+  "name": "qg-mazerace-server",
+  "version": "1.0.0",
+  "author": "Salvatore <dested@gmail.com>",
+  "private": true,
+  "scripts": {
+    "dev-link": "yarn link quickgame-framework-server && yarn link quickgame-framework-common"
+  },
+  "dependencies": {
+    "quickgame-framework-server": "link:latest",
+    "quickgame-framework-common": "link:latest"
+
+  },
+  "devDependencies": {
+    "@types/node": "^8.0.28"
+  }
+}

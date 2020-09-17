@@ -1,0 +1,13 @@
+{
+  "name": "qg-mazerace-common",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "dev-link": "yarn link quickgame-framework-common"
+  },
+  "dependencies": {
+    "quickgame-framework-common": "link:latest"
+  },
+  "devDependencies": {
+  }
+}
