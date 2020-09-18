@@ -1,6 +1,7 @@
 import {MazeRaceMessage, MazeRaceSerializedGameState, MazeRaceSerializedPlayerState} from '@common/models';
 import {QGClient} from 'quickgame-framework-client';
-import React, {useEffect, useState} from 'react';
+import React from 'react';
+import './mazeRace';
 
 export default class MazeRaceClient extends QGClient {
   constructor() {
@@ -19,13 +20,13 @@ export default class MazeRaceClient extends QGClient {
   logicTick(): void {}
 
   draw(msSinceLastDraw: number): void {
-    if (!this.canvas.current) return;
+    /*  if (!this.canvas.current) return;
     const canvas = this.canvas.current;
     const context = canvas.getContext('2d')!;
     context.clearRect(0, 0, 100, 100);
     context.fillRect(this.x % 120, this.y % 120, 20, 20);
     this.x += Math.random();
-    this.y += Math.random();
+    this.y += Math.random();*/
   }
 
   x: number = 0;
@@ -44,20 +45,32 @@ export default class MazeRaceClient extends QGClient {
   render() {
     return (
       <>
-        <Foo></Foo>
-        <canvas ref={this.canvas} width={100} height={100} style={{width: '100%', height: '100%'}}></canvas>
+        <canvas
+          id={'mazecanvas'}
+          ref={this.canvas}
+          width={100}
+          height={100}
+          style={{width: '100%', height: '100%', position: 'absolute'}}
+        ></canvas>
+        <canvas
+          id={'visibilityCanvas'}
+          width={100}
+          height={100}
+          style={{width: '100%', height: '100%', position: 'absolute'}}
+        ></canvas>
+        <canvas
+          id={'playersCanvas'}
+          width={100}
+          height={100}
+          style={{width: '100%', height: '100%', position: 'absolute'}}
+        ></canvas>
+        <canvas
+          id={'solutionCanvas'}
+          width={100}
+          height={100}
+          style={{width: '100%', height: '100%', position: 'absolute'}}
+        ></canvas>
       </>
     );
   }
-}
-
-function Foo() {
-  const [value, setValue] = useState(12);
-
-  useEffect(() => {
-    setTimeout(() => {
-      setValue(Math.random);
-    }, 100);
-  });
-  return <span>{value}</span>;
 }
