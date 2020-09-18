@@ -53,6 +53,12 @@ export default class MazeRaceClient extends QGClient {
           style={{width: '100%', height: '100%', position: 'absolute'}}
         ></canvas>
         <canvas
+          id={'solutionCanvas'}
+          width={100}
+          height={100}
+          style={{width: '100%', height: '100%', position: 'absolute'}}
+        ></canvas>
+        <canvas
           id={'visibilityCanvas'}
           width={100}
           height={100}
@@ -60,12 +66,6 @@ export default class MazeRaceClient extends QGClient {
         ></canvas>
         <canvas
           id={'playersCanvas'}
-          width={100}
-          height={100}
-          style={{width: '100%', height: '100%', position: 'absolute'}}
-        ></canvas>
-        <canvas
-          id={'solutionCanvas'}
           width={100}
           height={100}
           style={{width: '100%', height: '100%', position: 'absolute'}}

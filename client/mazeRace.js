@@ -4,7 +4,23 @@ function MazeClient(updateContent, clientTick) {
   var self = this;
   self.players = [];
   self.currentPlayerID = null;
-  self.currentPlayer = null; /*
+  self.currentPlayer = null;
+  self.players.push({
+    userID: '1',
+    position: {x: 30, y: 30},
+  });
+  self.players.push({
+    userID: '2',
+    position: {x: 30, y: 30},
+  });
+  self.players.push({
+    userID: '3',
+    position: {x: 30, y: 30},
+  });
+  self.currentPlayer = self.players[1];
+  self.currentPlayerID = self.players[1].userID;
+
+  /*
     var client = this.client = io.connect('198.211.107.235:80');
 
 
@@ -26,9 +42,8 @@ function MazeClient(updateContent, clientTick) {
             updates[data[i].tick].push(data[i]);
         }
     });*/
-  debugger;
   setTimeout(() => {
-    var maze = new MazeGenerator(20, 10);
+    var maze = new MazeGenerator(30, 30);
     startGame(maze);
   }, 10);
 
@@ -116,6 +131,8 @@ function MazeClient(updateContent, clientTick) {
     x,
     y
   ) {
+    self.currentPlayer.moveToX = x;
+    self.currentPlayer.moveToY = y;
     // client.emit('Game.UpdatePosition', {x: x, y: y });
   };
 }
@@ -295,7 +312,6 @@ function gameTick() {
 
 function resize() {
   var canvases = ['mazecanvas', 'visibilityCanvas', 'playersCanvas', 'solutionCanvas'];
-  debugger;
   for (var i = 0; i < canvases.length; i++) {
     var canvas = document.getElementById(canvases[i]);
     canvas.height = height = window.innerHeight;
@@ -976,15 +992,15 @@ VisibilityPolygon.isOnSegment = function (d, c, e, f, h, g) {
   return (d <= h || e <= h) && (h <= d || h <= e) && (c <= g || f <= g) && (g <= c || g <= f);
 };
 VisibilityPolygon.computeDirection = function (d, c, e, f, h, g) {
- const a = (h - d) * (f - c);
- const b = (e - d) * (g - c);
+  const a = (h - d) * (f - c);
+  const b = (e - d) * (g - c);
   return a < b ? -1 : a > b ? 1 : 0;
 };
 VisibilityPolygon.doLineSegmentsIntersect = function (d, c, e, f, h, g, k, l) {
- const d1 = VisibilityPolygon.computeDirection(h, g, k, l, d, c);
- const d2 = VisibilityPolygon.computeDirection(h, g, k, l, e, f);
- const d3 = VisibilityPolygon.computeDirection(d, c, e, f, h, g);
- const d4 = VisibilityPolygon.computeDirection(d, c, e, f, k, l);
+  const d1 = VisibilityPolygon.computeDirection(h, g, k, l, d, c);
+  const d2 = VisibilityPolygon.computeDirection(h, g, k, l, e, f);
+  const d3 = VisibilityPolygon.computeDirection(d, c, e, f, h, g);
+  const d4 = VisibilityPolygon.computeDirection(d, c, e, f, k, l);
   return (
     (((0 < d1 && 0 > d2) || (0 > d1 && 0 < d2)) && ((0 < d3 && 0 > d4) || (0 > d3 && 0 < d4))) ||
     (0 == d1 && VisibilityPolygon.isOnSegment(h, g, k, l, d, c)) ||
