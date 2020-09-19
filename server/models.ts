@@ -1,4 +1,4 @@
-import {GameState, PlayerState} from 'quickgame-framework-server';
+import {GameState, PlayerState} from '@quickga.me/framework.server';
 
 export interface MazeRaceGameState extends GameState {
   players: MazeRacePlayerState[];

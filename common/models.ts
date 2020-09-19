@@ -1,4 +1,4 @@
-import {Message, SerializedGameState, SerializedPlayerState} from 'quickgame-framework-common';
+import {Message, SerializedGameState, SerializedPlayerState} from '@quickga.me/framework.common';
 
 export interface MazeRaceSerializedGameState extends SerializedGameState {
   players: MazeRaceSerializedPlayerState[];

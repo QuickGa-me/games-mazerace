@@ -1,5 +1,5 @@
 import {MazeRaceMessage, MazeRaceSerializedGameState, MazeRaceSerializedPlayerState} from '@common/models';
-import {QGClient} from 'quickgame-framework-client';
+import {QGClient} from '@quickga.me/framework.client';
 import React from 'react';
 import './mazeRace';
 
@@ -51,25 +51,25 @@ export default class MazeRaceClient extends QGClient {
           width={100}
           height={100}
           style={{width: '100%', height: '100%', position: 'absolute'}}
-        ></canvas>
+        />
         <canvas
           id={'solutionCanvas'}
           width={100}
           height={100}
           style={{width: '100%', height: '100%', position: 'absolute'}}
-        ></canvas>
+        />
         <canvas
           id={'visibilityCanvas'}
           width={100}
           height={100}
           style={{width: '100%', height: '100%', position: 'absolute'}}
-        ></canvas>
+        />
         <canvas
           id={'playersCanvas'}
           width={100}
           height={100}
           style={{width: '100%', height: '100%', position: 'absolute'}}
-        ></canvas>
+        />
       </>
     );
   }

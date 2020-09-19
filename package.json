@@ -7,7 +7,7 @@
     "client": "qg run-client",
     "server": "qg run-server",
     "start": "yarn client & yarn server",
-    "dev-link": "cd ./client && yarn dev-link && cd ../common && yarn dev-link && cd ../server && yarn dev-link"
+    "dev-link": "yarn link @quickga.me/cli && cd ./client && yarn dev-link && cd ../common && yarn dev-link && cd ../server && yarn dev-link"
   },
   "workspaces": {
     "packages": [
@@ -17,7 +17,14 @@
     ]
   },
   "dependencies": {
+    "@quickga.me/cli": "latest"
   },
   "devDependencies": {
+    "prettier": "^2.1.2",
+    "tslint": "^6.1.2",
+    "tslint-config-prettier": "^1.18.0",
+    "tslint-eslint-rules": "^5.4.0",
+    "tslint-plugin-prettier": "^2.3.0",
+    "typescript": "3.9.3"
   }
 }

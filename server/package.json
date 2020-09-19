@@ -4,12 +4,11 @@
   "author": "Salvatore <dested@gmail.com>",
   "private": true,
   "scripts": {
-    "dev-link": "yarn link quickgame-framework-server && yarn link quickgame-framework-common"
+    "dev-link": "yarn link @quickga.me/framework.server && yarn link @quickga.me/framework.common"
   },
   "dependencies": {
-    "quickgame-framework-server": "link:latest",
-    "quickgame-framework-common": "link:latest"
-
+    "@quickga.me/framework.server": "latest",
+    "@quickga.me/framework.common": "latest"
   },
   "devDependencies": {
     "@types/node": "^8.0.28"

@@ -1,6 +1,6 @@
 import {MazeRaceGameState, MazeRacePlayerState} from './models';
 import {MazeRaceMessage, MazeRaceSerializedGameState} from '@common/models';
-import {QGServer, ServerConfig} from 'quickgame-framework-server';
+import {QGServer, ServerConfig} from '@quickga.me/framework.server';
 console.log('hia');
 
 export default class MazeRaceServer extends QGServer {

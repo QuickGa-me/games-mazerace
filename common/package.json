@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "description": "",
   "scripts": {
-    "dev-link": "yarn link quickgame-framework-common"
+    "dev-link": "yarn link @quickga.me/framework.common"
   },
   "dependencies": {
-    "quickgame-framework-common": "link:latest"
+    "@quickga.me/framework.common": "latest"
   },
   "devDependencies": {
   }
