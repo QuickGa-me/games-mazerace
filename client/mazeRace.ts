@@ -6,6 +6,7 @@ import {MazeGeneration, MazeGenerator} from '@common/mazeGenerator';
 import {GEO} from './geo';
 import * as VisibilityPolygon from 'visibility-polygon';
 import {Position} from 'visibility-polygon';
+import {MathUtils} from '@common/mathUtils';
 
 type Player = {userId: string; position: {x: number; y: number}; moveToX?: number; moveToY?: number};
 
@@ -147,7 +148,6 @@ export class MazeClient {
 }
 
 let changed: boolean,
-  v: Position[],
   started = false;
 
 function updateContent() {
@@ -166,7 +166,6 @@ const Maze: {
   xsize: number;
   obstacle_polys: Position[][];
   wall: number[][][];
-  solution_polys: {polygon: number[][]; n: number}[];
   segments: Position[][];
 } = {
   xsize: 2,
@@ -180,7 +179,6 @@ const Maze: {
   segments: [],
   padding: 1,
 
-  solution_polys: [],
   solutionlength: 0, // not the same as solution_polys.length since each cell in solution may have more than one polygon.
 };
 
@@ -191,6 +189,7 @@ export class MazeGame {
   height: number = 0;
   observerX: number = 0;
   observerY: number = 0;
+  v!: Position[];
 
   mousex = 0;
   mousey = 0;
@@ -206,8 +205,8 @@ export class MazeGame {
     const canvas = document.getElementById('playersCanvas') as HTMLCanvasElement;
     canvas.onmousemove = (evt) => {
       if (evt.offsetX) {
-        this.setMouseX = evt.offsetX;
-        this.setMouseY = evt.offsetY;
+        this.setMouseX = evt.offsetX - this.window.x;
+        this.setMouseY = evt.offsetY - this.window.y;
       }
       this.mousex = this.setMouseX / GEO.ss;
       this.mousey = this.setMouseY / GEO.ss;
@@ -234,14 +233,15 @@ export class MazeGame {
     }
   }
   resize() {
-    const canvases = ['mazecanvas', 'visibilityCanvas', 'playersCanvas', 'solutionCanvas'];
+    const canvases = ['mazecanvas', 'visibilityCanvas', 'playersCanvas'];
     for (const c of canvases) {
       const canv = document.getElementById(c) as HTMLCanvasElement;
       canv.height = this.height = window.innerHeight;
       canv.width = this.width = window.innerWidth;
     }
 
-    GEO.setSize(Math.min(this.width / Maze.xsize / 8.5, this.height / Maze.ysize / (1 + (10 * Math.sqrt(3)) / 2)));
+    GEO.setSize(10);
+    // GEO.setSize(Math.min(this.width / Maze.xsize / 8.5, this.height / Maze.ysize / (1 + (10 * Math.sqrt(3)) / 2)));
     this.polygonize();
     const canvas = document.getElementById('mazecanvas') as HTMLCanvasElement;
     const ctx = canvas.getContext('2d')!;
@@ -252,7 +252,8 @@ export class MazeGame {
   startGame(data: MazeGeneration) {
     Maze.xsize = data.maze_in.length;
     Maze.ysize = data.maze_in[0].length;
-    GEO.setSize(Math.min(this.width / Maze.xsize / 11, this.height / Maze.ysize / (1 + (10 * Math.sqrt(3)) / 2)));
+    GEO.setSize(10);
+    // GEO.setSize(Math.min(this.width / Maze.xsize / 11, this.height / Maze.ysize / (1 + (10 * Math.sqrt(3)) / 2)));
     Maze.in = JSON.parse(JSON.stringify(data.maze_in));
     Maze.prev = JSON.parse(JSON.stringify(data.maze_prev));
     Maze.wall = JSON.parse(JSON.stringify(data.maze_wall));
@@ -281,10 +282,13 @@ export class MazeGame {
         this.mazeClient.players[m].moveToY = this.observerY;
       }
     }
+    this.computeVisibility();
 
     this.update();
 
-    window.onresize = this.resize;
+    window.onresize = () => {
+      this.resize();
+    };
     started = true;
 
     const canvas = document.getElementById('mazecanvas') as HTMLCanvasElement;
@@ -293,22 +297,29 @@ export class MazeGame {
   }
 
   draw() {
+    this.window.x = this.width / 2 - this.observerX * GEO.ss;
+    this.window.y = this.height / 2 - this.observerY * GEO.ss;
     const visibilityCanvas = document.getElementById('visibilityCanvas') as HTMLCanvasElement;
     const visibilityCtx = visibilityCanvas.getContext('2d')!;
     this.draw_visibility(visibilityCtx);
-    const solutionCanvas = document.getElementById('solutionCanvas') as HTMLCanvasElement;
-    const solutionCtx = solutionCanvas.getContext('2d')!;
-    this.draw_solution(solutionCtx);
     const playersCanvas = document.getElementById('playersCanvas') as HTMLCanvasElement;
     const playersCtx = playersCanvas.getContext('2d')!;
-    this.draw_players(playersCtx);
+    this.drawPlayers(playersCtx);
+
+    const canvas = document.getElementById('mazecanvas') as HTMLCanvasElement;
+    const ctx = canvas.getContext('2d')!;
+    this.draw_maze(ctx);
   }
 
+  window = {x: 0, y: 0};
+
   draw_maze(ctx: CanvasRenderingContext2D) {
+    ctx.save();
     ctx.beginPath();
     ctx.rect(0, 0, this.width, this.height);
     ctx.fillStyle = '#333';
     ctx.fill();
+    ctx.translate(this.window.x, this.window.y);
 
     if (!Maze.xsize) return;
 
@@ -335,37 +346,27 @@ export class MazeGame {
     //   ctx.strokeStyle = '#0ff';
     //   ctx.stroke();
     // }
+    ctx.restore();
   }
 
   draw_visibility(ctx: CanvasRenderingContext2D) {
+    ctx.save();
     ctx.clearRect(0, 0, this.width, this.height);
+    ctx.translate(this.window.x, this.window.y);
     ctx.beginPath();
-    ctx.moveTo(v[0][0], v[0][1]);
-    for (let i = 1, j = v.length; i < j; i++) {
-      ctx.lineTo(v[i][0], v[i][1]);
+    ctx.moveTo(this.v[0][0], this.v[0][1]);
+    for (let i = 1, j = this.v.length; i < j; i++) {
+      ctx.lineTo(this.v[i][0], this.v[i][1]);
     }
     ctx.fillStyle = 'rgba(255,255,255,0.2)';
     ctx.fill();
+    ctx.restore();
   }
 
-  draw_solution(ctx: CanvasRenderingContext2D) {
+  drawPlayers(ctx: CanvasRenderingContext2D) {
+    ctx.save();
     ctx.clearRect(0, 0, this.width, this.height);
-    for (let i = 0, j = Maze.solution_polys.length; i < j; i++) {
-      const qqq = Maze.solution_polys[i].polygon;
-      ctx.beginPath();
-      ctx.moveTo(qqq[0][0], qqq[0][1]);
-      for (let k = 1, l = qqq.length; k < l; k++) {
-        ctx.lineTo(qqq[k][0], qqq[k][1]);
-      }
-      const red = Math.sqrt(Maze.solution_polys[i].n / Maze.solutionlength);
-      const green = Math.sqrt(1 - Maze.solution_polys[i].n / Maze.solutionlength);
-      ctx.fillStyle = 'rgb(' + Math.floor(red * 100) + ',' + Math.floor(green * 100) + ',0)';
-      ctx.fill();
-    }
-  }
-
-  draw_players(ctx: CanvasRenderingContext2D) {
-    ctx.clearRect(0, 0, this.width, this.height);
+    ctx.translate(this.window.x, this.window.y);
     if (this.canMove(this.mousex, this.mousey)) {
       ctx.save();
       ctx.beginPath();
@@ -401,18 +402,25 @@ export class MazeGame {
     ctx.fillStyle = '#fff';
     ctx.fill();
     ctx.restore();
+    ctx.restore();
+  }
+
+  get windowRange() {
+    return 0;
+    // return {x:-Maze.xsize*GEO.ss}
   }
 
   polygonize() {
     // generates obstacle and walkable polygons for rendering
 
-    // initialize first element of obstacles to bounding rectangle as required by visibility_polygon.js
+    // initialize first element of obstacles to  bounding rectangle as required by visibility_polygon.js
+
     Maze.obstacle_polys = [
       [
         [-GEO.dx, -GEO.dy],
-        [this.width + GEO.dx, -GEO.dy],
-        [this.width + GEO.dx, this.height + GEO.dy],
-        [-GEO.dx, this.height + GEO.dy],
+        [10000000 + GEO.dx, -GEO.dy],
+        [10000000 + GEO.dx, 10000000 + GEO.dy],
+        [-GEO.dx, 10000000 + GEO.dy],
       ],
     ];
     Maze.walkable_polys = [];
@@ -467,25 +475,6 @@ export class MazeGame {
     }
   }
 
-  pixels2mazecell_int(a: Position) {
-    // converts real pixel coordinates to maze cell coordinates
-    // note: this is a retarded implementation that runs in O(xsize*ysize) time instead of O(1);
-    let dist = 999999999999;
-    let minx, miny;
-    for (let x = 0; x < Maze.xsize; x++) {
-      for (let y = 0, yy = Maze.ysize - (x % 2); y < yy; y++) {
-        const tempx = x * GEO.dx + GEO.cx + GEO.ccx / 2 + GEO.sx;
-        const tempy = y * GEO.dy + GEO.cy + GEO.sy + (x % 2) * (GEO.dy / 2);
-        if (polygonDistance([tempx, tempy], a) < dist) {
-          dist = polygonDistance([tempx, tempy], a);
-          minx = x;
-          miny = y;
-        }
-      }
-    }
-    return [minx, miny];
-  }
-
   plus(x: number, y: number, p: number[][]): Position[] {
     const qqq: Position[] = [];
     for (let i = 0, j = p.length; i < j; i++) {
@@ -494,174 +483,37 @@ export class MazeGame {
     return qqq;
   }
 
-  solve(x1: number, y1: number, x2: number, y2: number) {
-    Maze.solution_polys = [];
-    // console.log(started, Maze.sol, x1, y1, x2, y2);
-    if (!Maze.xsize) return;
-    if (!Maze.in[x1][y1] || Maze.prev[x1][y1] === null || Maze.prev[x1][y1] === undefined) return;
-    if (!Maze.in[x2][y2] || Maze.prev[x2][y2] === null || Maze.prev[x2][y2] === undefined) return;
-    if (
-      x1 < Maze.padding ||
-      x1 >= Maze.xsize - Maze.padding ||
-      y1 < Maze.padding ||
-      y1 >= Maze.ysize - (x1 % 2) - Maze.padding
-    )
-      return;
-    if (
-      x2 < Maze.padding ||
-      x2 >= Maze.xsize - Maze.padding ||
-      y2 < Maze.padding ||
-      y2 >= Maze.ysize - (x2 % 2) - Maze.padding
-    )
-      return;
-    let solutions: Position[] = [];
-    const sola: Position[] = [];
-    const solb: Position[] = [];
-    for (let x = 0; x < Maze.xsize; x++) {
-      for (let y = 0, yy = Maze.ysize - (x % 2); y < yy; y++) {
-        Maze.sol[x][y] = 0;
-      }
-    }
-    let overlap = false;
-    do {
-      sola.unshift([x1, y1]);
-      Maze.sol[x1][y1] ^= 1;
-      const temp = Maze.prev[x1][y1][0];
-      y1 = Maze.prev[x1][y1][1];
-      x1 = temp;
-    } while (Maze.prev[x1][y1][0] !== x1 || Maze.prev[x1][y1][1] !== y1);
-    do {
-      if (!overlap && Maze.sol[x2][y2]) {
-        overlap = true;
-        Maze.sol[x2][y2] = 1;
-      } else {
-        Maze.sol[x2][y2] ^= 1;
-      }
-      if (Maze.sol[x2][y2]) {
-        solb.push([x2, y2]);
-      }
-      const temp = Maze.prev[x2][y2][0];
-      y2 = Maze.prev[x2][y2][1];
-      x2 = temp;
-    } while (Maze.prev[x2][y2][0] !== x2 || Maze.prev[x2][y2][1] !== y2);
-    solutions = solutions.concat(solb, sola);
-    for (let i = 0, j = solutions.length; i < j; i++) {
-      if (!Maze.sol[solutions[i][0]][solutions[i][1]]) {
-        solutions.splice(i, 1);
-        i--;
-        j--;
-      }
-    }
-    this.solvepolygonize(solutions);
-    Maze.solutionlength = solutions.length;
-  }
-
-  solvepolygonize(solutions: Position[]) {
-    for (let a = 0, b = solutions.length; a < b; a++) {
-      const x = solutions[a][0],
-        y = solutions[a][1];
-      if (Maze.sol[x][y]) {
-        Maze.solution_polys.push({
-          polygon: this.plus(x * GEO.dx, y * GEO.dy + ((x % 2) * GEO.dy) / 2, GEO.hexagon),
-          n: a,
-        });
-        if (!Maze.wall[1][x][y]) {
-          if (x % 2 === 1 && Maze.sol[x - 1][y]) {
-            Maze.solution_polys.push({
-              polygon: this.plus(x * GEO.dx, y * GEO.dy + ((x % 2) * GEO.dy) / 2, GEO.fatwall[1]),
-              n: a,
-            });
-          } else if (x % 2 === 0 && Maze.sol[x - 1][y - 1]) {
-            Maze.solution_polys.push({
-              polygon: this.plus(x * GEO.dx, y * GEO.dy + ((x % 2) * GEO.dy) / 2, GEO.fatwall[1]),
-              n: a,
-            });
-          }
-        }
-        if (!Maze.wall[2][x][y]) {
-          if (x % 2 === 1 && Maze.sol[x - 1][y + 1]) {
-            Maze.solution_polys.push({
-              polygon: this.plus(x * GEO.dx, y * GEO.dy + ((x % 2) * GEO.dy) / 2, GEO.fatwall[2]),
-              n: a,
-            });
-          } else if (x % 2 === 0 && Maze.sol[x - 1][y]) {
-            Maze.solution_polys.push({
-              polygon: this.plus(x * GEO.dx, y * GEO.dy + ((x % 2) * GEO.dy) / 2, GEO.fatwall[2]),
-              n: a,
-            });
-          }
-        }
-        if (!Maze.wall[0][x][y] && Maze.sol[x][y - 1]) {
-          Maze.solution_polys.push({
-            polygon: this.plus(x * GEO.dx, y * GEO.dy + ((x % 2) * GEO.dy) / 2, GEO.fatwall[0]),
-            n: a,
-          });
-        }
-      }
-    }
-  }
-
   computeVisibility() {
-    v = VisibilityPolygon.compute([this.observerX * GEO.ss, this.observerY * GEO.ss], Maze.segments);
+    this.v = VisibilityPolygon.compute([this.observerX * GEO.ss, this.observerY * GEO.ss], Maze.segments);
   }
 
-  canMove(x: number | undefined, y: number | undefined) {
-    if (x === undefined || y === undefined) return false;
-    if (v === undefined) this.computeVisibility();
-    return VisibilityPolygon.inPolygon([x * GEO.ss, y * GEO.ss], v);
+  canMove(x: number, y: number) {
+    return VisibilityPolygon.inPolygon([x * GEO.ss, y * GEO.ss], this.v);
   }
 
-  chasemouse() {
-    if (this.canMove(this.mousex, this.mousey)) {
-      let d = polygonDistance(
-        [this.mousex * GEO.ss, this.mousey * GEO.ss],
-        [this.observerX * GEO.ss, this.observerY * GEO.ss]
-      );
-      d = Math.sqrt(d);
-      if (d <= GEO.ss) return;
-      const x = this.observerX * GEO.ss + ((this.mousex * GEO.ss - this.observerX * GEO.ss) / d) * Math.sqrt(d);
-      const y = this.observerY * GEO.ss + ((this.mousey * GEO.ss - this.observerY * GEO.ss) / d) * Math.sqrt(d);
-      if (x < 0 || x > this.width || y < 0 || y > this.height) return;
-      if (!this.canMove(x / GEO.ss, y / GEO.ss)) return;
-      this.observerX = x / GEO.ss;
-      this.observerY = y / GEO.ss;
+  chaseMouse() {
+    debugger;
+    const x = this.observerX;
+    const y = this.observerY;
 
-      changed = true;
-    }
-  }
+    const distance = MathUtils.distance(x, y, this.mousex, this.mousey);
+    const directionX = (this.mousex - x) / distance;
+    const directionY = (this.mousey - y) / distance;
 
-  chaseOtherPlayers() {
-    for (let i = 0; i < this.mazeClient.players.length; i++) {
-      if (this.mazeClient.players[i] === this.mazeClient.currentPlayer) continue;
-      const player = this.mazeClient.players[i];
+    const newX = x + directionX;
+    const newY = y + directionY;
 
-      let d = polygonDistance(
-        [player.moveToX! * GEO.ss, player.moveToY! * GEO.ss],
-        [player.position.x * GEO.ss, player.position.y * GEO.ss]
-      );
-      d = Math.sqrt(d);
-      if (d <= GEO.ss) continue;
-      const x =
-        player.position.x * GEO.ss + ((player.moveToX! * GEO.ss - player.position.x * GEO.ss) / d) * Math.sqrt(d);
-      const y =
-        player.position.y * GEO.ss + ((player.moveToY! * GEO.ss - player.position.y * GEO.ss) / d) * Math.sqrt(d);
-      if (x < 0 || x > this.width || y < 0 || y > this.height) return;
-
-      player.position.x = x / GEO.ss;
-      player.position.y = y / GEO.ss;
-
+    if (this.canMove(newX, newY)) {
+      this.observerX = newX;
+      this.observerY = newY;
       changed = true;
     }
   }
 
   update() {
-    this.chasemouse();
-    this.chaseOtherPlayers();
+    this.chaseMouse();
     if (changed && started) {
       this.computeVisibility();
-      const a1 = this.pixels2mazecell_int([this.mousex * GEO.ss, this.mousey * GEO.ss]),
-        a2 = this.pixels2mazecell_int([this.observerX * GEO.ss, this.observerY * GEO.ss]);
-      this.solve(a1[0]!, a1[1]!, a2[0]!, a2[1]!);
       this.draw();
       changed = false;
     }
