@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "collisions": "^2.0.13",
+    "visibility-polygon": "^1.0.2",
     "@quickga.me/framework.client": "latest",
     "@quickga.me/framework.common": "latest",
     "react": "^16.13.1",

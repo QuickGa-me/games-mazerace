@@ -1,7 +1,7 @@
 import {MazeRaceMessage, MazeRaceSerializedGameState, MazeRaceSerializedPlayerState} from '@common/models';
 import {QGClient} from '@quickga.me/framework.client';
 import React from 'react';
-import './mazeRace';
+import {MazeGame} from './mazeRace';
 
 export default class MazeRaceClient extends QGClient {
   constructor() {
@@ -19,14 +19,21 @@ export default class MazeRaceClient extends QGClient {
 
   logicTick(): void {}
 
+  ready = false;
   draw(msSinceLastDraw: number): void {
-    /*  if (!this.canvas.current) return;
+    if (!this.canvas.current) return;
+    if (!this.ready) {
+      this.ready = true;
+      new MazeGame();
+    }
+    /*
     const canvas = this.canvas.current;
     const context = canvas.getContext('2d')!;
     context.clearRect(0, 0, 100, 100);
     context.fillRect(this.x % 120, this.y % 120, 20, 20);
     this.x += Math.random();
-    this.y += Math.random();*/
+    this.y += Math.random();
+*/
   }
 
   x: number = 0;

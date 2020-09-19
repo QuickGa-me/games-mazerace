@@ -1,4 +1,5 @@
 const path = require('path');
+const currentPath = process.cwd();
 
 var config = {
     entry: './index.ts',
@@ -11,9 +12,7 @@ var config = {
         // Add `.ts` and `.tsx` as a resolvable extension.
         extensions: ['.ts', '.tsx', '.js'], // note if using webpack 1 you'd also need a '' in the array as well
         alias: {
-            '@common': path.resolve(__dirname, '../common/'),
-            // "@framework": path.resolve(__dirname, "../../../framework/server"),
-            // "@framework-common": path.resolve(__dirname, "../../../framework/common")
+            "@common": path.resolve(currentPath, "../common/"),
         },
     },
     module: {

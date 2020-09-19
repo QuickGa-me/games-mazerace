@@ -1,4 +1,5 @@
 const path = require("path");
+const currentPath = process.cwd();
 
 module.exports = {
   entry: "./index.tsx",
@@ -10,7 +11,7 @@ module.exports = {
   resolve: {
     extensions: [".ts", ".tsx", ".js"],
     alias: {
-      "@common": path.resolve(__dirname, "../common/"),
+      "@common": path.resolve(currentPath, "../common/"),
     },
   },
   module: {
