@@ -1,11 +1,15 @@
 import {MazeRaceMessage, MazeRaceSerializedGameState, MazeRaceSerializedPlayerState} from '@common/models';
+// import {ClientEngineUI} from '@quickga.me/framework.client';
 import {QGClient} from '@quickga.me/framework.client';
 import React from 'react';
 import {MazeGame} from './mazeRace';
+import {MazeGenerator} from '@common/mazeGenerator';
 
-export default class MazeRaceClient extends QGClient {
+type PlayerInputKeys = {down: boolean; left: boolean; right: boolean; up: boolean; shoot: boolean};
+
+export default class MazeRaceClient implements QGClient /*extends ClientEngineUI*/ {
   constructor() {
-    super();
+    // super();
   }
 
   initializeAssets(): Promise<void> {
@@ -13,7 +17,6 @@ export default class MazeRaceClient extends QGClient {
   }
 
   initializeState(state: MazeRaceSerializedGameState): void {
-    state.foo = 12;
     state.players = [];
   }
 
@@ -22,10 +25,6 @@ export default class MazeRaceClient extends QGClient {
   ready = false;
   draw(msSinceLastDraw: number): void {
     if (!this.canvas.current) return;
-    if (!this.ready) {
-      this.ready = true;
-      new MazeGame();
-    }
     /*
     const canvas = this.canvas.current;
     const context = canvas.getContext('2d')!;
@@ -35,17 +34,54 @@ export default class MazeRaceClient extends QGClient {
     this.y += Math.random();
 */
   }
+  private mazeGame?: MazeGame;
 
   x: number = 0;
   y: number = 0;
 
-  receiveMessages(message: MazeRaceMessage): void {}
+  receiveMessages(message: MazeRaceMessage): void {
+    switch (message.type) {
+      case 'maze':
+        this.mazeGame?.startGame(message.maze);
+        break;
+      case 'join':
+        this.mazeGame = new MazeGame();
+        this.mazeGame.mazeClient.onUpdate = (state) => {
+          this.sendMessage({
+            type: 'move',
+            x: state.x,
+            y: state.y,
+          });
+        };
+        this.mazeGame.mazeClient.currentPlayerID = message.playerId;
+        break;
+    }
+  }
 
   onPlayerJoin(player: MazeRaceSerializedPlayerState): void {}
 
   onPlayerLeave(player: MazeRaceSerializedPlayerState): void {}
 
-  receiveState(state: MazeRaceSerializedGameState): void {}
+  receiveState(state: MazeRaceSerializedGameState): void {
+    if (!this.mazeGame || !this.mazeGame.mazeClient) return;
+    for (const player of state.players ?? []) {
+      const foundPlayer = this.mazeGame.mazeClient.players.find((p) => p.userId === player.id);
+      if (!foundPlayer) {
+        this.mazeGame.mazeClient.players.push({
+          moveToX: player.x,
+          moveToY: player.y,
+          position: {
+            x: player.x,
+            y: player.y,
+          },
+          userId: player.id,
+        });
+      } else {
+        foundPlayer.moveToX = player.x;
+        foundPlayer.moveToY = player.y;
+      }
+    }
+  }
 
   canvas: {current: HTMLCanvasElement | null} = {current: null};
 
@@ -73,5 +109,13 @@ export default class MazeRaceClient extends QGClient {
         />
       </>
     );
+  }
+
+  get receivedMessages(): [] {
+    return [];
+  }
+
+  sendMessage(message: MazeRaceMessage): void {
+    (this as any).$send(message);
   }
 }

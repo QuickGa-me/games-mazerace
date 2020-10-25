@@ -1,14 +1,29 @@
 import {Message, SerializedGameState, SerializedPlayerState} from '@quickga.me/framework.common';
+import {MazeGeneration} from './mazeGenerator';
 
-export interface MazeRaceSerializedGameState extends SerializedGameState {
+export interface MazeRaceSerializedGameState {
   players: MazeRaceSerializedPlayerState[];
-  foo: 12;
 }
 
-export interface MazeRaceSerializedPlayerState extends SerializedPlayerState {
-  bar: 13;
+export interface MazeRaceSerializedPlayerState {
+  x: number;
+  y: number;
+  id: string;
 }
 
-export type MazeRaceMessage = Message & {
-  type: 'player-joined';
-};
+export type MazeRaceMessage = Message &
+  (
+    | {
+        type: 'move';
+        x: number;
+        y: number;
+      }
+    | {
+        type: 'maze';
+        maze: MazeGeneration;
+      }
+    | {
+        type: 'join';
+        playerId: string;
+      }
+  );

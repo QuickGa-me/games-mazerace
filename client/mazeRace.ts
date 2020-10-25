@@ -13,26 +13,13 @@ type Player = {userId: string; position: {x: number; y: number}; moveToX?: numbe
 export class MazeClient {
   players: Player[];
   currentPlayerID?: string;
-  currentPlayer?: Player;
+  get currentPlayer() {
+    return this.players.find((p) => p.userId === this.currentPlayerID);
+  }
 
   constructor(updateContent: () => void, clientTick: () => void) {
     this.players = [];
     this.currentPlayerID = undefined;
-    this.currentPlayer = undefined;
-    this.players.push({
-      userId: '1',
-      position: {x: 30, y: 30},
-    });
-    this.players.push({
-      userId: '2',
-      position: {x: 30, y: 30},
-    });
-    this.players.push({
-      userId: '3',
-      position: {x: 30, y: 30},
-    });
-    this.currentPlayer = this.players[1];
-    this.currentPlayerID = this.players[1].userId;
 
     /*
       var client = this.client = io.connect('198.211.107.235:80');
@@ -79,7 +66,7 @@ export class MazeClient {
       });*/
 
     function ticker() {
-      console.log('tick', tick, new Date().getTime());
+      // console.log('tick', tick, new Date().getTime());
       tick++;
       clientTick();
       // serverTick();
@@ -145,6 +132,8 @@ export class MazeClient {
       // client.emit('Game.UpdatePosition', {x: x, y: y });
     }
   }
+
+  onUpdate?: (state: {x: number; y: number}) => void;
 }
 
 let changed: boolean,
@@ -183,7 +172,7 @@ const Maze: {
 };
 
 export class MazeGame {
-  private mazeClient: MazeClient;
+  mazeClient: MazeClient;
 
   width: number = 0;
   height: number = 0;
@@ -212,9 +201,6 @@ export class MazeGame {
       this.mousey = this.setMouseY / GEO.ss;
       // console.log(mousex, mousey);
     };
-
-    const maze = MazeGenerator(30, 30);
-    this.startGame(maze);
   }
 
   gameTick() {
@@ -300,6 +286,7 @@ export class MazeGame {
     this.window.x = this.width / 2 - this.observerX * GEO.ss;
     this.window.y = this.height / 2 - this.observerY * GEO.ss;
     const visibilityCanvas = document.getElementById('visibilityCanvas') as HTMLCanvasElement;
+    if (!visibilityCanvas) return;
     const visibilityCtx = visibilityCanvas.getContext('2d')!;
     this.draw_visibility(visibilityCtx);
     const playersCanvas = document.getElementById('playersCanvas') as HTMLCanvasElement;
@@ -367,18 +354,24 @@ export class MazeGame {
     ctx.save();
     ctx.clearRect(0, 0, this.width, this.height);
     ctx.translate(this.window.x, this.window.y);
-    if (this.canMove(this.mousex, this.mousey)) {
-      ctx.save();
-      ctx.beginPath();
-      ctx.moveTo(this.setMouseX, this.setMouseY);
-      ctx.lineTo(this.observerX * GEO.ss, this.observerY * GEO.ss);
-      ctx.strokeStyle = '#fff';
-      ctx.stroke();
-      ctx.restore();
-    }
-
     for (let m = 0; m < this.mazeClient.players.length; m++) {
       if (this.mazeClient.players[m] !== this.mazeClient.currentPlayer) {
+        const p = this.mazeClient.players[m];
+        if (p.moveToX && p.moveToY) {
+          if (Math.abs(p.moveToX - p.position.x) > 0.1 || Math.abs(p.moveToY - p.position.y) > 0.1) {
+            const updatedPos = moveTowardsPoint(p.moveToX, p.moveToY, p.position.x, p.position.y, 0.1);
+            if (Math.abs(updatedPos.curX - p.position.x) < 0.1) {
+              p.position.x = p.moveToX;
+            } else {
+              p.position.x = updatedPos.curX;
+            }
+            if (Math.abs(updatedPos.curY - p.position.y) < 0.1) {
+              p.position.y = p.moveToY;
+            } else {
+              p.position.y = updatedPos.curY;
+            }
+          }
+        }
         ctx.save();
 
         ctx.beginPath();
@@ -492,11 +485,10 @@ export class MazeGame {
   }
 
   chaseMouse() {
-    debugger;
     const x = this.observerX;
     const y = this.observerY;
 
-    const distance = MathUtils.distance(x, y, this.mousex, this.mousey);
+    const distance = MathUtils.distance(x, y, this.mousex, this.mousey) * 5;
     const directionX = (this.mousex - x) / distance;
     const directionY = (this.mousey - y) / distance;
 
@@ -506,6 +498,8 @@ export class MazeGame {
     if (this.canMove(newX, newY)) {
       this.observerX = newX;
       this.observerY = newY;
+      this.mazeClient.onUpdate?.({x: this.observerX, y: this.observerY});
+
       changed = true;
     }
   }
@@ -544,4 +538,16 @@ export class MazeGame {
 }
 function polygonDistance(a: Position, b: Position): number {
   return (a[0] - b[0]) * (a[0] - b[0]) + (a[1] - b[1]) * (a[1] - b[1]);
+}
+
+function moveTowardsPoint(curX: number, curY: number, toX: number, toY: number, speed: number) {
+  const dx = curX - toX;
+  const dy = curY - toY;
+  const angle = Math.atan2(dy, dx);
+  const xVelocity = speed * Math.cos(angle);
+  const yVelocity = speed * Math.sin(angle);
+  return {
+    curX: curX + xVelocity,
+    curY: curY + yVelocity,
+  };
 }
