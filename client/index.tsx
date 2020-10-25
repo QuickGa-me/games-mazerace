@@ -55,6 +55,8 @@ export default class MazeRaceClient implements QGClient /*extends ClientEngineUI
         };
         this.mazeGame.mazeClient.currentPlayerID = message.playerId;
         break;
+      case 'berries':
+        this.mazeGame!.berries = message.berries;
     }
   }
 

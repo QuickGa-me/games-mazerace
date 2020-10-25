@@ -1,18 +1,33 @@
 import {MazeRaceGameState, MazeRacePlayerState} from './models';
 import {MazeRaceMessage, MazeRaceSerializedGameState} from '@common/models';
 import {QGServer, ServerConfig} from '@quickga.me/framework.server';
-import {MazeGenerator} from '@common/mazeGenerator';
+import {MazeGeneration, MazeGenerator} from '@common/mazeGenerator';
+import {MathUtils} from '@quickga.me/framework.common';
 
 export default class MazeRaceServer extends QGServer<MazeRaceMessage> {
+  private maze: MazeGeneration;
+  private berries: {x: number; y: number}[] = [];
   constructor(config: ServerConfig) {
     super(config);
+    this.maze = MazeGenerator(30, 30);
   }
   onStart() {
-    const maze = MazeGenerator(30, 30);
-    this.sendMessageToEveryone({type: 'maze', maze});
+    this.sendMessageToEveryone({type: 'maze', maze: this.maze});
   }
 
-  onTick(msSinceLastTick: number): void {}
+  ticks = 0;
+  onTick(msSinceLastTick: number): void {
+    if (this.ticks++ % 240 === 0) {
+      this.berries.length = 0;
+      for (let i = 0; i < 100; i++) {
+        this.berries.push({
+          x: Math.round(Math.random() * 30 * 10 * 10),
+          y: Math.round(Math.random() * 30 * 10 * 10),
+        });
+      }
+      this.sendMessageToEveryone({type: 'berries', berries: this.berries});
+    }
+  }
 
   receiveMessage(connectionId: number, message: MazeRaceMessage): void {
     switch (message.type) {
@@ -23,6 +38,14 @@ export default class MazeRaceServer extends QGServer<MazeRaceMessage> {
         }
         player.x = message.x;
         player.y = message.y;
+
+        for (const berry of this.berries) {
+          if (MathUtils.distance(player.x, player.y, berry.x, berry.y) < 15) {
+            this.berries.splice(this.berries.indexOf(berry), 1);
+            this.sendMessageToEveryone({type: 'berries', berries: this.berries});
+            break;
+          }
+        }
         break;
     }
   }

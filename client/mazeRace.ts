@@ -172,6 +172,7 @@ const Maze: {
 };
 
 export class MazeGame {
+  berries: {x: number; y: number}[] = [];
   mazeClient: MazeClient;
 
   width: number = 0;
@@ -197,8 +198,8 @@ export class MazeGame {
         this.setMouseX = evt.offsetX - this.window.x;
         this.setMouseY = evt.offsetY - this.window.y;
       }
-      this.mousex = this.setMouseX / GEO.ss;
-      this.mousey = this.setMouseY / GEO.ss;
+      this.mousex = this.setMouseX;
+      this.mousey = this.setMouseY;
       // console.log(mousex, mousey);
     };
   }
@@ -210,8 +211,8 @@ export class MazeGame {
       this.setMouseY !== undefined &&
       (this.mousex !== this.setMouseX || this.mousey !== this.setMouseY)
     ) {
-      this.mousex = this.setMouseX / GEO.ss;
-      this.mousey = this.setMouseY / GEO.ss;
+      this.mousex = this.setMouseX;
+      this.mousey = this.setMouseY;
       if (this.canMove(this.mousex, this.mousey)) {
         this.mazeClient.updatePlayerPosition(this.mousex, this.mousey);
       }
@@ -257,15 +258,12 @@ export class MazeGame {
     this.observerX = GEO.dx + GEO.sx + GEO.cx + GEO.ccx / 2;
     this.observerY = GEO.dy + GEO.sy + GEO.cy + (this.observerX % 2) * GEO.cy;
 
-    this.observerX /= GEO.ss;
-    this.observerY /= GEO.ss;
-
-    for (let m = 0; m < this.mazeClient.players.length; m++) {
-      if (this.mazeClient.players[m] !== this.mazeClient.currentPlayer) {
-        this.mazeClient.players[m].position.x = this.observerX;
-        this.mazeClient.players[m].position.y = this.observerY;
-        this.mazeClient.players[m].moveToX = this.observerX;
-        this.mazeClient.players[m].moveToY = this.observerY;
+    for (const player of this.mazeClient.players) {
+      if (player !== this.mazeClient.currentPlayer) {
+        player.position.x = this.observerX;
+        player.position.y = this.observerY;
+        player.moveToX = this.observerX;
+        player.moveToY = this.observerY;
       }
     }
     this.computeVisibility();
@@ -283,15 +281,12 @@ export class MazeGame {
   }
 
   draw() {
-    this.window.x = this.width / 2 - this.observerX * GEO.ss;
-    this.window.y = this.height / 2 - this.observerY * GEO.ss;
+    this.window.x = this.width / 2 - this.observerX;
+    this.window.y = this.height / 2 - this.observerY;
     const visibilityCanvas = document.getElementById('visibilityCanvas') as HTMLCanvasElement;
     if (!visibilityCanvas) return;
     const visibilityCtx = visibilityCanvas.getContext('2d')!;
     this.draw_visibility(visibilityCtx);
-    const playersCanvas = document.getElementById('playersCanvas') as HTMLCanvasElement;
-    const playersCtx = playersCanvas.getContext('2d')!;
-    this.drawPlayers(playersCtx);
 
     const canvas = document.getElementById('mazecanvas') as HTMLCanvasElement;
     const ctx = canvas.getContext('2d')!;
@@ -350,13 +345,18 @@ export class MazeGame {
     ctx.restore();
   }
 
-  drawPlayers(ctx: CanvasRenderingContext2D) {
+  drawPlayers() {
+    const playersCanvas = document.getElementById('playersCanvas') as HTMLCanvasElement;
+    if (!playersCanvas) return;
+    const ctx = playersCanvas.getContext('2d')!;
+
     ctx.save();
     ctx.clearRect(0, 0, this.width, this.height);
     ctx.translate(this.window.x, this.window.y);
-    for (let m = 0; m < this.mazeClient.players.length; m++) {
-      if (this.mazeClient.players[m] !== this.mazeClient.currentPlayer) {
-        const p = this.mazeClient.players[m];
+
+    for (const player of this.mazeClient.players) {
+      if (player !== this.mazeClient.currentPlayer) {
+        const p = player;
         if (p.moveToX && p.moveToY) {
           if (Math.abs(p.moveToX - p.position.x) > 0.1 || Math.abs(p.moveToY - p.position.y) > 0.1) {
             const updatedPos = moveTowardsPoint(p.moveToX, p.moveToY, p.position.x, p.position.y, 0.1);
@@ -372,26 +372,33 @@ export class MazeGame {
             }
           }
         }
-        ctx.save();
+        if (this.canMove(player.position.x, player.position.y)) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(player.position.x, player.position.y, 5, 0, Math.PI * 2, true);
+          ctx.fillStyle = '#f30';
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+    }
 
+    for (const berry of this.berries) {
+      if (this.canMove(berry.x, berry.y)) {
+        ctx.save();
         ctx.beginPath();
-        ctx.arc(
-          this.mazeClient.players[m].position.x * GEO.ss,
-          this.mazeClient.players[m].position.y * GEO.ss,
-          5,
-          0,
-          Math.PI * 2,
-          true
-        );
-        ctx.fillStyle = '#f30';
+        ctx.arc(berry.x, berry.y, 10, 0, Math.PI * 2, true);
+        ctx.fillStyle = 'gold';
         ctx.fill();
+        ctx.strokeStyle = 'white';
+        ctx.stroke();
         ctx.restore();
       }
     }
 
     ctx.save();
     ctx.beginPath();
-    ctx.arc(this.observerX * GEO.ss, this.observerY * GEO.ss, 5, 0, Math.PI * 2, true);
+    ctx.arc(this.observerX, this.observerY, 5, 0, Math.PI * 2, true);
     ctx.fillStyle = '#fff';
     ctx.fill();
     ctx.restore();
@@ -400,7 +407,7 @@ export class MazeGame {
 
   get windowRange() {
     return 0;
-    // return {x:-Maze.xsize*GEO.ss}
+    // return {x:-Maze.xsize}
   }
 
   polygonize() {
@@ -477,18 +484,18 @@ export class MazeGame {
   }
 
   computeVisibility() {
-    this.v = VisibilityPolygon.compute([this.observerX * GEO.ss, this.observerY * GEO.ss], Maze.segments);
+    this.v = VisibilityPolygon.compute([this.observerX, this.observerY], Maze.segments);
   }
 
   canMove(x: number, y: number) {
-    return VisibilityPolygon.inPolygon([x * GEO.ss, y * GEO.ss], this.v);
+    return VisibilityPolygon.inPolygon([x, y], this.v);
   }
 
   chaseMouse() {
     const x = this.observerX;
     const y = this.observerY;
 
-    const distance = MathUtils.distance(x, y, this.mousex, this.mousey) * 5;
+    const distance = MathUtils.distance(x, y, this.mousex, this.mousey) / 2;
     const directionX = (this.mousex - x) / distance;
     const directionY = (this.mousey - y) / distance;
 
@@ -511,6 +518,8 @@ export class MazeGame {
       this.draw();
       changed = false;
     }
+    this.drawPlayers();
+
     requestAnimationFrame(() => {
       this.update();
     });

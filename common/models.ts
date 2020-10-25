@@ -19,6 +19,10 @@ export type MazeRaceMessage = Message &
         y: number;
       }
     | {
+        type: 'berries';
+        berries: {x: number; y: number}[];
+      }
+    | {
         type: 'maze';
         maze: MazeGeneration;
       }
